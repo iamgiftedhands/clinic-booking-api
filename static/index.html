@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book a clinic appointment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --linen: #f1f5f3;
+    --surface: #ffffff;
+    --ink: #15302b;
+    --muted: #546a63;
+    --line: #d3dfdb;
+    --pine: #0f6b57;
+    --pine-deep: #0a4f40;
+    --mint: #dcefe8;
+    --alert: #a8332a;
+    --alert-soft: #f8e4e1;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--linen);
+    color: var(--ink);
+    font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--pine); outline-offset: 2px; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 36px 0 20px; }
+  h1 { margin: 0 0 6px; font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; }
+  .lede { margin: 0; color: var(--muted); max-width: 52ch; }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end;
+    padding: 14px 0 22px; border-bottom: 1px solid var(--line);
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.875rem; font-weight: 500; color: var(--muted); }
+  input, select {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; min-height: 44px; min-width: 0;
+  }
+  .toolbar .key { flex: 1 1 260px; max-width: 380px; }
+  .toolbar .doctor { flex: 0 1 200px; }
+  .hint { font-size: 0.875rem; color: var(--muted); margin: 0; align-self: center; }
+
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 40px; padding: 28px 0 64px; align-items: start; }
+  @media (max-width: 880px) { main { grid-template-columns: 1fr; gap: 28px; } }
+
+  .day { margin-bottom: 30px; }
+  .day h2 { margin: 0 0 12px; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+  .provider-row { display: grid; grid-template-columns: 110px 1fr; gap: 6px 14px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); }
+  .provider-row .who { font-weight: 500; padding-top: 10px; }
+  @media (max-width: 520px) { .provider-row { grid-template-columns: 1fr; } .provider-row .who { padding-top: 0; } }
+  .times { display: flex; flex-wrap: wrap; gap: 8px; }
+  .time {
+    min-width: 84px; min-height: 44px; padding: 8px 12px; border-radius: 8px;
+    background: var(--surface); border: 1.5px solid var(--line); cursor: pointer;
+    font-variant-numeric: tabular-nums; font-weight: 500;
+  }
+  .time:hover:not(:disabled) { border-color: var(--pine); }
+  .time[aria-pressed="true"] { background: var(--pine); border-color: var(--pine); color: #fff; }
+  .time:disabled { background: transparent; color: #8da099; border-style: dashed; text-decoration: line-through; cursor: not-allowed; }
+
+  .panel { position: sticky; top: 20px; display: grid; gap: 20px; }
+  @media (max-width: 880px) { .panel { position: static; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .card h2 { margin: 0 0 4px; font-size: 1.25rem; font-weight: 600; }
+  .card p { margin: 0 0 14px; color: var(--muted); }
+  form { display: grid; gap: 14px; margin-top: 16px; }
+  form input { width: 100%; }
+  .btn {
+    min-height: 46px; padding: 10px 18px; border-radius: 8px; border: 0; cursor: pointer;
+    background: var(--pine); color: #fff; font-weight: 600;
+  }
+  .btn:hover:not(:disabled) { background: var(--pine-deep); }
+  .btn:disabled { opacity: 0.6; cursor: progress; }
+  .btn.quiet { background: transparent; color: var(--pine-deep); border: 1.5px solid var(--line); }
+  .btn.quiet:hover:not(:disabled) { background: var(--mint); border-color: var(--pine); }
+  .btn.danger { background: transparent; color: var(--alert); border: 1.5px solid #e1b7b2; }
+  .btn.danger:hover:not(:disabled) { background: var(--alert-soft); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .notice { padding: 11px 13px; border-radius: 8px; background: var(--alert-soft); color: #6e1f18; font-size: 0.95rem; }
+  .notice.info { background: var(--mint); color: var(--pine-deep); }
+  .empty { padding: 28px; border: 1.5px dashed var(--line); border-radius: var(--radius); color: var(--muted); }
+
+  /* The confirmation is styled as an appointment card with a tear-off edge. */
+  .slip { padding: 0; overflow: hidden; }
+  .slip-top { padding: 22px 22px 18px; background: var(--mint); }
+  .slip-top h2 { color: var(--pine-deep); }
+  .slip-top.cancelled { background: var(--alert-soft); }
+  .slip-top.cancelled h2 { color: var(--alert); }
+  .card p.when { margin: 6px 0 0; font-size: 1.45rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; color: var(--ink); }
+  .tear { border-top: 2px dashed var(--line); margin: 0; }
+  .slip-body { padding: 18px 22px 22px; }
+  dl { margin: 0 0 18px; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; overflow-wrap: anywhere; font-weight: 500; }
+  .ref { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+
+  .lookup form { grid-template-columns: 1fr auto; align-items: end; margin-top: 12px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Book a clinic appointment</h1>
+    <p class="lede">Choose a time with the doctor you want to see. You will get a confirmation with a reference you can use to look up or cancel your visit.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="field key">
+      <label for="key">API key</label>
+      <input id="key" type="password" autocomplete="off" placeholder="Paste your API key">
+    </div>
+    <div class="field doctor">
+      <label for="provider">Doctor</label>
+      <select id="provider"><option value="">All doctors</option></select>
+    </div>
+    <p class="hint" id="tz"></p>
+  </div>
+
+  <main>
+    <section aria-labelledby="slots-h">
+      <h2 id="slots-h" class="sr">Available times</h2>
+      <div id="slots"></div>
+    </section>
+
+    <aside class="panel" aria-live="polite">
+      <div id="action"></div>
+      <div class="card lookup">
+        <h2>Find an appointment</h2>
+        <p>Enter the reference from your confirmation.</p>
+        <form id="lookup-form">
+          <div class="field"><label for="ref">Reference</label><input id="ref" autocomplete="off" required></div>
+          <button class="btn quiet" type="submit">Look up</button>
+        </form>
+        <div id="lookup-msg"></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s) { return document.querySelector(s); };
+  var keyInput = $("#key"), providerSel = $("#provider");
+  var slots = [], selected = null, pending = null, providersLoaded = false;
+
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  keyInput.value = store("clinic_api_key") || "";
+  var zone = (Intl.DateTimeFormat().resolvedOptions().timeZone || "your time zone");
+  $("#tz").textContent = "Times are shown in " + zone.replace("_", " ") + ".";
+
+  function el(tag, attrs, children) {
+    var n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "text") n.textContent = attrs[k];
+      else if (k === "class") n.className = attrs[k];
+      else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), attrs[k]);
+      else n.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = Object.assign({ "X-API-Key": keyInput.value.trim() }, opts.headers || {});
+    if (opts.body) headers["Content-Type"] = "application/json";
+    var res = await fetch(path, { method: opts.method || "GET", headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    var data = null;
+    try { data = await res.json(); } catch (e) {}
+    return { res: res, data: data || {} };
+  }
+
+  var fmtDay = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" });
+  var fmtTime = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+  var fmtFull = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" });
+
+  // ---------------------------------------------------------------- slots
+  async function loadSlots() {
+    var box = $("#slots");
+    if (!keyInput.value.trim()) {
+      clear(box);
+      box.appendChild(el("div", { class: "empty", text: "Enter your API key above to see available times." }));
+      return;
+    }
+    try {
+      var q = providerSel.value ? "?provider=" + encodeURIComponent(providerSel.value) : "";
+      var r = await api("/slots" + q);
+      if (r.res.status === 401) {
+        clear(box);
+        box.appendChild(el("div", { class: "notice", text: "That API key was not accepted. Check it and try again." }));
+        return;
+      }
+      if (!r.res.ok) throw new Error("bad status");
+      slots = r.data.slots || [];
+      if (!providersLoaded && !providerSel.value) fillProviders();
+      renderSlots();
+    } catch (e) {
+      clear(box);
+      box.appendChild(el("div", { class: "notice", text: "Could not load times. Check your connection and reload the page." }));
+    }
+  }
+
+  function fillProviders() {
+    var names = Array.from(new Set(slots.map(function (s) { return s.provider; }))).sort();
+    names.forEach(function (n) { providerSel.appendChild(el("option", { value: n, text: n })); });
+    providersLoaded = true;
+  }
+
+  function renderSlots() {
+    var box = $("#slots");
+    clear(box);
+    var now = Date.now();
+    var upcoming = slots.filter(function (s) { return new Date(s.start).getTime() > now; });
+    if (!upcoming.length) {
+      box.appendChild(el("div", { class: "empty", text: "There are no upcoming times for this doctor. Try another doctor, or check back later." }));
+      return;
+    }
+    var days = new Map();
+    upcoming.forEach(function (s) {
+      var d = fmtDay.format(new Date(s.start));
+      if (!days.has(d)) days.set(d, new Map());
+      var byProv = days.get(d);
+      if (!byProv.has(s.provider)) byProv.set(s.provider, []);
+      byProv.get(s.provider).push(s);
+    });
+    days.forEach(function (byProv, day) {
+      var section = el("div", { class: "day" }, [el("h2", { text: day })]);
+      byProv.forEach(function (list, provider) {
+        var times = el("div", { class: "times" });
+        list.forEach(function (s) {
+          var label = fmtTime.format(new Date(s.start));
+          var b = el("button", {
+            type: "button", class: "time", text: label,
+            "aria-pressed": String(!!selected && selected.id === s.id),
+            "aria-label": label + " with " + provider + (s.available ? "" : ", already booked"),
+            onclick: function () { choose(s); }
+          });
+          if (!s.available) b.disabled = true;
+          times.appendChild(b);
+        });
+        section.appendChild(el("div", { class: "provider-row" }, [el("div", { class: "who", text: provider }), times]));
+      });
+      box.appendChild(section);
+    });
+  }
+
+  // ----------------------------------------------------------------- form
+  function choose(slot) {
+    selected = slot;
+    pending = null;
+    renderSlots();
+    showForm();
+    if (window.matchMedia("(max-width: 880px)").matches) {
+      $("#action").scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    }
+  }
+
+  function showForm(message) {
+    var box = $("#action");
+    clear(box);
+    if (!selected) {
+      box.appendChild(el("div", { class: "empty", text: "Pick a time on the left to book it." }));
+      return;
+    }
+    var name = el("input", { id: "name", autocomplete: "name", required: "" });
+    var email = el("input", { id: "email", type: "email", autocomplete: "email", required: "" });
+    var msg = el("div", { id: "form-msg" });
+    var submit = el("button", { class: "btn", type: "submit", text: "Book appointment" });
+    var form = el("form", { novalidate: "" }, [
+      el("div", { class: "field" }, [el("label", { for: "name", text: "Full name" }), name]),
+      el("div", { class: "field" }, [el("label", { for: "email", text: "Email" }), email]),
+      msg, submit
+    ]);
+    form.addEventListener("submit", function (ev) { ev.preventDefault(); book(name, email, msg, submit); });
+    box.appendChild(el("div", { class: "card" }, [
+      el("h2", { text: "Your appointment" }),
+      el("p", { text: selected.provider + ", " + fmtFull.format(new Date(selected.start)) }),
+      form
+    ]));
+    if (message) msg.appendChild(el("div", { class: "notice", text: message }));
+    name.focus();
+  }
+
+  function say(msgBox, text, info) {
+    clear(msgBox);
+    msgBox.appendChild(el("div", { class: "notice" + (info ? " info" : ""), text: text }));
+  }
+
+  function topNotice(text) {
+    var box = $("#action");
+    box.insertBefore(el("div", { class: "notice" }, [el("span", { text: text })]), box.firstChild);
+  }
+
+  async function book(nameEl, emailEl, msgBox, submit) {
+    var body = { slot_id: selected.id, name: nameEl.value.trim(), email: emailEl.value.trim() };
+    if (!body.name) return say(msgBox, "Enter your full name.");
+    if (!body.email) return say(msgBox, "Enter your email address.");
+
+    // The same Idempotency-Key is reused while the same details are being retried,
+    // so a dropped connection can never create two bookings.
+    var sig = JSON.stringify(body);
+    if (!pending || pending.sig !== sig) pending = { sig: sig, key: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()) };
+
+    submit.disabled = true; submit.textContent = "Booking...";
+    try {
+      var r = await api("/bookings", { method: "POST", body: body, headers: { "Idempotency-Key": pending.key } });
+      var s = r.res.status;
+      if (s === 201) { pending = null; showBooking(r.data, "Appointment confirmed"); loadSlots(); return; }
+      pending = null;
+      if (s === 409) { selected = null; await loadSlots(); showForm(); topNotice("Someone else just booked that time. Pick another one."); return; }
+      if (s === 404) { selected = null; await loadSlots(); showForm(); topNotice("That time is no longer available. Pick another one."); return; }
+      if (s === 429) {
+        var wait = r.res.headers.get("Retry-After");
+        say(msgBox, "Too many attempts with this email. Try again" + (wait ? " in " + wait + " seconds." : " in a minute."));
+      } else if (s === 401) {
+        say(msgBox, "The API key was not accepted. Check the key at the top of the page.");
+      } else {
+        say(msgBox, r.data.error ? capitalise(r.data.error) + "." : "Something went wrong. Try again.");
+      }
+    } catch (e) {
+      say(msgBox, "Could not reach the server. Press Book appointment again to retry. It will not book twice.", true);
+    }
+    submit.disabled = false; submit.textContent = "Book appointment";
+  }
+
+  function capitalise(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+
+  // ---------------------------------------------------------- confirmation
+  function showBooking(b, heading, target) {
+    var box = target || $("#action");
+    clear(box);
+    var slot = slots.find(function (s) { return s.id === b.slot_id; });
+    var cancelled = b.status === "cancelled";
+    var when = slot ? fmtFull.format(new Date(slot.start)) : "Slot " + b.slot_id;
+    var rows = [
+      ["Doctor", slot ? slot.provider : "Not shown"],
+      ["Name", b.name], ["Email", b.email], ["Status", b.status], ["Reference", b.id]
+    ];
+    var dl = el("dl");
+    rows.forEach(function (r) {
+      dl.appendChild(el("dt", { text: r[0] }));
+      dl.appendChild(el("dd", { text: r[1], class: r[0] === "Reference" ? "ref" : "" }));
+    });
+    var msg = el("div");
+    var actions = el("div", { class: "row" });
+    if (!cancelled) {
+      actions.appendChild(el("button", { class: "btn danger", type: "button", text: "Cancel appointment", onclick: function () { cancel(b, msg); } }));
+    }
+    actions.appendChild(el("button", { class: "btn quiet", type: "button", text: "Book another time", onclick: function () { selected = null; renderSlots(); showForm(); } }));
+    box.appendChild(el("div", { class: "card slip" }, [
+      el("div", { class: "slip-top" + (cancelled ? " cancelled" : "") }, [
+        el("h2", { text: cancelled ? "Appointment cancelled" : heading }),
+        el("p", { class: "when", text: when })
+      ]),
+      el("hr", { class: "tear" }),
+      el("div", { class: "slip-body" }, [dl, msg, actions])
+    ]));
+  }
+
+  async function cancel(b, msgBox) {
+    if (!window.confirm("Cancel this appointment?")) return;
+    try {
+      var r = await api("/bookings/" + encodeURIComponent(b.id), { method: "DELETE" });
+      if (r.res.ok) { showBooking(r.data); loadSlots(); }
+      else say(msgBox, r.data.error ? capitalise(r.data.error) + "." : "Could not cancel. Try again.");
+    } catch (e) { say(msgBox, "Could not reach the server. Try again."); }
+  }
+
+  // ---------------------------------------------------------------- lookup
+  $("#lookup-form").addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    var id = $("#ref").value.trim();
+    var msg = $("#lookup-msg");
+    clear(msg);
+    if (!id) return;
+    try {
+      var r = await api("/bookings/" + encodeURIComponent(id));
+      if (r.res.ok) { selected = null; renderSlots(); showBooking(r.data, "Your appointment"); }
+      else if (r.res.status === 404) msg.appendChild(el("div", { class: "notice", text: "No appointment found with that reference." }));
+      else if (r.res.status === 401) msg.appendChild(el("div", { class: "notice", text: "The API key was not accepted." }));
+      else msg.appendChild(el("div", { class: "notice", text: "Something went wrong. Try again." }));
+    } catch (e) {
+      msg.appendChild(el("div", { class: "notice", text: "Could not reach the server. Try again." }));
+    }
+  });
+
+  keyInput.addEventListener("change", function () { store("clinic_api_key", keyInput.value.trim()); providersLoaded = false; clear(providerSel); providerSel.appendChild(el("option", { value: "", text: "All doctors" })); loadSlots(); });
+  providerSel.addEventListener("change", loadSlots);
+
+  showForm();
+  loadSlots();
+})();
+</script>
+</body>
+</html>
