@@ -113,32 +113,47 @@ def utc_iso(dt):
     return dt.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
+
 def init_db():
-    """Create tables and seed a few demo slots on first run."""
+    """Create tables and ensure future demo slots exist."""
     with pool.connection() as conn:
-        conn.execute("SELECT pg_advisory_xact_lock(727001)")  # one worker at a time
+        conn.execute("SELECT pg_advisory_xact_lock(727001)")
         conn.execute(SCHEMA)
-        has_slots = conn.execute("SELECT EXISTS (SELECT 1 FROM slots) AS x").fetchone()["x"]
-        if not has_slots:
-            now = datetime.now(timezone.utc)
-            n = 0
-            for day in range(1, 6):
-                date = (now + timedelta(days=day)).replace(hour=0, minute=0, second=0, microsecond=0)
-                for provider in ("Dr Ade", "Dr Bola"):
-                    for half_hours in range(18, 24):  # 09:00 to 11:30
-                        start = date + timedelta(minutes=30 * half_hours)
-                        end = start + timedelta(minutes=30)
-                        n += 1
-                        s_raw = start.strftime("%Y-%m-%dT%H:%M:%SZ")
-                        e_raw = end.strftime("%Y-%m-%dT%H:%M:%SZ")
-                        conn.execute(
-                            "INSERT INTO slots (id, provider, start_at, end_at, start_raw, end_raw) "
-                            "VALUES (%s, %s, %s, %s, %s, %s)",
-                            (f"s{n}", provider, start, end, s_raw, e_raw),
-                        )
+
+        now = datetime.now(timezone.utc)
+
+        # Generate slots for the next 7 days.
+        for day in range(1, 8):
+            date = (now + timedelta(days=day)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+
+            for provider_index, provider in enumerate(("Dr Ade", "Dr Bola")):
+                for half_hours in range(18, 24):
+                    start = date + timedelta(minutes=30 * half_hours)
+                    end = start + timedelta(minutes=30)
+
+                    slot_id = (
+                        f"{provider_index + 1}-"
+                        f"{start.strftime('%Y%m%d%H%M')}"
+                    )
+
+                    s_raw = start.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    e_raw = end.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+                    conn.execute(
+                        """
+                        INSERT INTO slots
+                        (id, provider, start_at, end_at, start_raw, end_raw)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (id) DO NOTHING
+                        """,
+                        (slot_id, provider, start, end, s_raw, e_raw),
+                    )
 
 
 init_db()
+
 
 
 # --------------------------------------------------------------------------
