@@ -53,8 +53,14 @@ app.json.sort_keys = False
 pool = ConnectionPool(
     DATABASE_URL,
     min_size=1,
-    max_size=int(os.environ.get("DB_POOL_MAX", "10")),
-    kwargs={"row_factory": dict_row, "prepare_threshold": None},
+    max_size=int(os.environ.get("DB_POOL_MAX", "4")),
+    timeout=15,
+    max_waiting=20,
+    reconnect_timeout=30,
+    kwargs={
+        "row_factory": dict_row,
+        "prepare_threshold": None,
+    },
     check=ConnectionPool.check_connection,
     open=False,
 )
